@@ -51,6 +51,8 @@ I did a cursor-based pagination using `actor_user_id` and `recipient_user_id` as
 
 Another improvement I would have liked to add is to add some test checking pagination usage in the integration tests.
 
+And, another small improvement would be change the page size constant to be a config parameter, so it can be changed without changing the code, if we ever want.
+
 ### Optimize queries
 
 Some queries can be optimised. For example, I would add an extra parameter on the `ListDecisions` method to receive the list of parameters that we want to receive, so we can do the `SELECT` query with the requested arguments instead of a `*`, which would be much more performant, especially because the `ListLikes` and `ListNewLikes` only use 2 parameters.
