@@ -1,0 +1,7 @@
+{
+    "port": 8080,
+    "dbUser": "root",
+    "dbHost": "db",
+    "dbPort": "3306",
+    "dbName": "explore"
+}

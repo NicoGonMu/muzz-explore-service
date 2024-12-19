@@ -1,0 +1,42 @@
+version: '3.3'
+networks:
+  testnetwork:
+    external: false
+    name: testnet
+services:
+  db:
+    image: mysql:9.1
+    restart: always
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: true
+      MYSQL_DATABASE: 'explore'
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+    volumes:
+      - my-db:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
+    networks: [testnetwork]
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  svc:
+    build: ../
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [testnetwork]
+    volumes: [./config:/etc/explore-svc/]
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 1s
+        window: 10s
+
+volumes:
+  my-db:
