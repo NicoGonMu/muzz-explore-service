@@ -181,14 +181,28 @@ func (s *dbTestSuite) Test_UpsertDecision() {
 	assert.NoError(s.T(), s.mock.ExpectationsWereMet())
 }
 
-func (s *dbTestSuite) Test_MarkDecisionsAsSeen() {
+func (s *dbTestSuite) Test_MarkDecisionsAsSeenNoInitPage() {
 	// GIVEN database set up with some expectations.
-	s.mock.ExpectExec("UPDATE decisions SET seen_by_recipient = ? WHERE recipient_user_id=? AND last_modified<?").
-		WithArgs(true, "recipient", 5000).WillReturnResult(sqlmock.NewResult(1, 1))
+	s.mock.ExpectExec("UPDATE decisions SET seen_by_recipient = ? WHERE recipient_user_id=? AND actor_user_id<=?").
+		WithArgs(true, "recipient", "actor20").WillReturnResult(sqlmock.NewResult(1, 1))
 	db := database{db: s.db}
 
 	// WHEN MarkDecisionsAsSeen is called.
-	err := db.MarkDecisionsAsSeen(context.Background(), "recipient", 5000)
+	err := db.MarkDecisionsAsSeen(context.Background(), "recipient", "", "actor20##recipient")
+
+	// THEN the expectations are met and the result is as expected.
+	require.NoError(s.T(), err)
+	assert.NoError(s.T(), s.mock.ExpectationsWereMet())
+}
+
+func (s *dbTestSuite) Test_MarkDecisionsAsSeenInitPage() {
+	// GIVEN database set up with some expectations.
+	s.mock.ExpectExec("UPDATE decisions SET seen_by_recipient = ? WHERE recipient_user_id=? AND actor_user_id<=? AND actor_user_id>?").
+		WithArgs(true, "recipient", "actor20", "actor10").WillReturnResult(sqlmock.NewResult(1, 1))
+	db := database{db: s.db}
+
+	// WHEN MarkDecisionsAsSeen is called.
+	err := db.MarkDecisionsAsSeen(context.Background(), "recipient", "actor10##recipient", "actor20##recipient")
 
 	// THEN the expectations are met and the result is as expected.
 	require.NoError(s.T(), err)

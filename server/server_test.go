@@ -28,10 +28,7 @@ func TestListLikedYou(t *testing.T) {
 			storeReturnedDecisions: nil,
 			storeReturnedError:     nil,
 			wantErr:                nil,
-			want: &pb.ListLikedYouResponse{
-				Likers:              nil,
-				NextPaginationToken: ref(""),
-			},
+			want:                   &pb.ListLikedYouResponse{Likers: nil},
 		},
 		"multiple decisions": {
 			in: &pb.ListLikedYouRequest{RecipientUserId: "user1"},
@@ -64,21 +61,24 @@ func TestListLikedYou(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			// GIVEN: A Server with some preconditions.
 			ctx := context.Background()
-			now := time.Now()
-
 			dsMock := mocks.NewDecisionStore(t)
+			inPaginationToken := tc.in.GetPaginationToken()
 			dsMock.EXPECT().ListDecisions(
 				ctx,
 				store.DecisionFilter{
 					RecipientUserID: ref("user1"),
 					LikedRecipient:  ref(true),
 				},
-				tc.in.GetPaginationToken(),
+				inPaginationToken,
 			).Return(tc.storeReturnedDecisions, tc.storeReturnedPageToken, tc.storeReturnedError)
-			if tc.storeReturnedError == nil {
+			if tc.storeReturnedError == nil && tc.want.GetNextPaginationToken() != "" {
 				// As error is only logged, we don't care about the return value.
-				// mock.Anything is for the context, which is internally created.
-				dsMock.EXPECT().MarkDecisionsAsSeen(mock.Anything, "user1", now.Unix()).Return(nil)
+				dsMock.EXPECT().MarkDecisionsAsSeen(
+					mock.Anything, // context internally created
+					"user1",
+					inPaginationToken,
+					tc.want.GetNextPaginationToken(),
+				).Return(nil)
 			}
 			s := NewServiceServer(dsMock)
 
@@ -107,7 +107,7 @@ func TestListNewLikedYou(t *testing.T) {
 			storeReturnedDecisions: nil,
 			storeReturnedError:     nil,
 			wantErr:                nil,
-			want:                   &pb.ListLikedYouResponse{Likers: nil, NextPaginationToken: ref("")},
+			want:                   &pb.ListLikedYouResponse{Likers: nil},
 		},
 		"multiple decisions": {
 			in: &pb.ListLikedYouRequest{RecipientUserId: "user1"},
@@ -140,8 +140,7 @@ func TestListNewLikedYou(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			// GIVEN: A Server with some preconditions.
 			ctx := context.Background()
-			now := time.Now()
-
+			inPaginationToken := tc.in.GetPaginationToken()
 			dsMock := mocks.NewDecisionStore(t)
 			dsMock.EXPECT().ListDecisions(
 				ctx,
@@ -150,16 +149,19 @@ func TestListNewLikedYou(t *testing.T) {
 					LikedRecipient:  ref(true),
 					SeenByRecipient: ref(false),
 				},
-				tc.in.GetPaginationToken(),
+				inPaginationToken,
 			).Return(tc.storeReturnedDecisions, tc.storeReturnedPageToken, tc.storeReturnedError)
-			if tc.storeReturnedError == nil {
+			if tc.storeReturnedError == nil && tc.want.GetNextPaginationToken() != "" {
 				// As error is only logged, we don't care about the return value.
-				// mock.Anything is for the context, which is internally created.
-				dsMock.EXPECT().MarkDecisionsAsSeen(mock.Anything, "user1", now.Unix()).Return(nil)
+				dsMock.EXPECT().MarkDecisionsAsSeen(
+					mock.Anything, // context internally created
+					"user1",
+					inPaginationToken,
+					tc.want.GetNextPaginationToken(),
+				).Return(nil)
 			}
 
 			s := NewServiceServer(dsMock)
-			s.nowFn = func() time.Time { return now }
 
 			// WHEN: ListNewLikedYou is called.
 			got, err := s.ListNewLikedYou(ctx, tc.in)

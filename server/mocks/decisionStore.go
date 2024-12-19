@@ -147,17 +147,17 @@ func (_c *DecisionStore_ListDecisions_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
-// MarkDecisionsAsSeen provides a mock function with given fields: ctx, RecipientUserID, timestamp
-func (_m *DecisionStore) MarkDecisionsAsSeen(ctx context.Context, RecipientUserID string, timestamp int64) error {
-	ret := _m.Called(ctx, RecipientUserID, timestamp)
+// MarkDecisionsAsSeen provides a mock function with given fields: ctx, RecipientUserID, initPageToken, nextPageToken
+func (_m *DecisionStore) MarkDecisionsAsSeen(ctx context.Context, RecipientUserID string, initPageToken string, nextPageToken string) error {
+	ret := _m.Called(ctx, RecipientUserID, initPageToken, nextPageToken)
 
 	if len(ret) == 0 {
 		panic("no return value specified for MarkDecisionsAsSeen")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, int64) error); ok {
-		r0 = rf(ctx, RecipientUserID, timestamp)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
+		r0 = rf(ctx, RecipientUserID, initPageToken, nextPageToken)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -173,14 +173,15 @@ type DecisionStore_MarkDecisionsAsSeen_Call struct {
 // MarkDecisionsAsSeen is a helper method to define mock.On call
 //   - ctx context.Context
 //   - RecipientUserID string
-//   - timestamp int64
-func (_e *DecisionStore_Expecter) MarkDecisionsAsSeen(ctx interface{}, RecipientUserID interface{}, timestamp interface{}) *DecisionStore_MarkDecisionsAsSeen_Call {
-	return &DecisionStore_MarkDecisionsAsSeen_Call{Call: _e.mock.On("MarkDecisionsAsSeen", ctx, RecipientUserID, timestamp)}
+//   - initPageToken string
+//   - nextPageToken string
+func (_e *DecisionStore_Expecter) MarkDecisionsAsSeen(ctx interface{}, RecipientUserID interface{}, initPageToken interface{}, nextPageToken interface{}) *DecisionStore_MarkDecisionsAsSeen_Call {
+	return &DecisionStore_MarkDecisionsAsSeen_Call{Call: _e.mock.On("MarkDecisionsAsSeen", ctx, RecipientUserID, initPageToken, nextPageToken)}
 }
 
-func (_c *DecisionStore_MarkDecisionsAsSeen_Call) Run(run func(ctx context.Context, RecipientUserID string, timestamp int64)) *DecisionStore_MarkDecisionsAsSeen_Call {
+func (_c *DecisionStore_MarkDecisionsAsSeen_Call) Run(run func(ctx context.Context, RecipientUserID string, initPageToken string, nextPageToken string)) *DecisionStore_MarkDecisionsAsSeen_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(int64))
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string))
 	})
 	return _c
 }
@@ -190,7 +191,7 @@ func (_c *DecisionStore_MarkDecisionsAsSeen_Call) Return(_a0 error) *DecisionSto
 	return _c
 }
 
-func (_c *DecisionStore_MarkDecisionsAsSeen_Call) RunAndReturn(run func(context.Context, string, int64) error) *DecisionStore_MarkDecisionsAsSeen_Call {
+func (_c *DecisionStore_MarkDecisionsAsSeen_Call) RunAndReturn(run func(context.Context, string, string, string) error) *DecisionStore_MarkDecisionsAsSeen_Call {
 	_c.Call.Return(run)
 	return _c
 }

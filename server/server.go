@@ -18,7 +18,7 @@ type DecisionStore interface {
 	ListDecisions(ctx context.Context, filter store.DecisionFilter, page string) ([]store.Decision, string, error)
 	CountDecisions(ctx context.Context, filter store.DecisionFilter) (uint64, error)
 	UpsertDecision(ctx context.Context, decision store.Decision) error
-	MarkDecisionsAsSeen(ctx context.Context, RecipientUserID string, timestamp int64) error
+	MarkDecisionsAsSeen(ctx context.Context, RecipientUserID string, initPageToken, nextPageToken string) error
 }
 
 type ServiceServer struct {
@@ -38,31 +38,34 @@ func (s *ServiceServer) ListLikedYou(
 	ctx context.Context,
 	in *pb.ListLikedYouRequest,
 ) (*pb.ListLikedYouResponse, error) {
-	now := s.nowFn().Unix()
-	decisions, nestPage, err := s.ds.ListDecisions(
+	pageToken := in.GetPaginationToken()
+	decisions, nextPage, err := s.ds.ListDecisions(
 		ctx,
 		store.DecisionFilter{
 			RecipientUserID: ref(in.GetRecipientUserId()),
 			LikedRecipient:  ref(true),
 		},
-		in.GetPaginationToken(),
+		pageToken,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list decisions: %v", err)
+	}
+	if len(decisions) == 0 {
+		return &pb.ListLikedYouResponse{}, nil
 	}
 
 	// Asynchronously update decisions sent to mark them as seen.
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err := s.ds.MarkDecisionsAsSeen(ctx, in.RecipientUserId, now); err != nil {
+		if err := s.ds.MarkDecisionsAsSeen(ctx, in.RecipientUserId, pageToken, nextPage); err != nil {
 			log.Warn().Err(err).Msg("failed to mark decisions as seen")
 		}
 	}()
 
 	return &pb.ListLikedYouResponse{
 		Likers:              storeToListLikedYouResponse_Liker(decisions),
-		NextPaginationToken: &nestPage,
+		NextPaginationToken: &nextPage,
 	}, nil
 }
 
@@ -70,8 +73,8 @@ func (s *ServiceServer) ListNewLikedYou(
 	ctx context.Context,
 	in *pb.ListLikedYouRequest,
 ) (*pb.ListLikedYouResponse, error) {
-	now := s.nowFn().Unix()
 	recipient := in.GetRecipientUserId()
+	pageToken := in.GetPaginationToken()
 	decisions, nextPage, err := s.ds.ListDecisions(
 		ctx,
 		store.DecisionFilter{
@@ -79,17 +82,20 @@ func (s *ServiceServer) ListNewLikedYou(
 			LikedRecipient:  ref(true),
 			SeenByRecipient: ref(false),
 		},
-		in.GetPaginationToken(),
+		pageToken,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list decisions: %v", err)
+	}
+	if len(decisions) == 0 {
+		return &pb.ListLikedYouResponse{}, nil
 	}
 
 	// Asynchronously update decisions sent to mark them as seen.
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err := s.ds.MarkDecisionsAsSeen(ctx, recipient, now); err != nil {
+		if err := s.ds.MarkDecisionsAsSeen(ctx, recipient, pageToken, nextPage); err != nil {
 			log.Warn().Err(err).Msg("failed to mark decisions as seen")
 		}
 	}()

@@ -98,12 +98,25 @@ func (d *database) UpsertDecision(ctx context.Context, decision store.Decision) 
 	return nil
 }
 
-func (d *database) MarkDecisionsAsSeen(ctx context.Context, recipientUserID string, timestamp int64) error {
-	_, err := sq.Update("decisions").Set("seen_by_recipient", true).
+func (d *database) MarkDecisionsAsSeen(
+	ctx context.Context,
+	recipientUserID string,
+	initPageToken, nextPageToken string,
+) error {
+	if nextPageToken == "" {
+		return fmt.Errorf("nextPage cannot be blank")
+	}
+	pageIDs := strings.Split(nextPageToken, "##")
+	sb := sq.Update("decisions").Set("seen_by_recipient", true).
 		Where("recipient_user_id=?", recipientUserID).
-		// Intentionally not using <= to avoid timing issues; better to show a new twice than not showing it at all.
-		Where("last_modified<?", timestamp).
-		RunWith(d.db).ExecContext(ctx)
+		Where("actor_user_id<=?", pageIDs[0])
+
+	if initPageToken != "" {
+		pageIDs := strings.Split(initPageToken, "##")
+		sb = sb.Where("actor_user_id>?", pageIDs[0])
+	}
+
+	_, err := sb.RunWith(d.db).ExecContext(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to update decisions: %w", err)
 	}
